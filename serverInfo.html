@@ -1,0 +1,28 @@
+<?
+	const os=require("os");
+	const {execSync}=require("child_process");
+?><!DOCTYPE html>
+<html>
+<head>
+	<title>Server Info</title>
+	<meta charset="utf-8">
+	<meta name=viewport content="width=device-width">
+	<link rel=stylesheet href=/css/main.css>
+	<!--<link rel=stylesheet href=/css/main.dark.css>-->
+	<link rel=stylesheet href=/web/serverInfo/style.css>
+</head>
+<body>
+	<h1>Server Info</h1>
+	<h2>Dieser Server:</h2>
+	<p>Server Name: <?=os.hostname()?></p>
+	<p>Platform: <?=os.platform?></p>
+	<p>HTTP/Web server uptime: <?=Math.round(process.uptime())?>s</p>
+	<p>Server System uptime: <?=execSync("uptime -p")?></p>
+	<p>Server Uhrzeit: <?=new Date()?></p>
+	<p><textarea readonly style="width: 80%; height: 95px;">Arbeitsspeicher (RAM):&#10;<?=execSync("free -h")?></textarea></p>
+	<p><textarea readonly style="width: 80%; height: 95px;">Processor Informationen:&#10;<?=execSync("lscpu")?></textarea></p>
+	<p><textarea readonly style="width: 80%; height: 95px;">Datei System:&#10;<?=execSync("df -h")?></textarea></p>
+
+
+</body>
+</html>
