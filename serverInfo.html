@@ -1,28 +1,32 @@
 <?
 	const os=require("os");
 	const {execSync}=require("child_process");
+	const {importHead}=globals.functions;
+	const platform=process.platform==="linux"?"Linux":(process.platform==="win32"?"Windows":process.platform);
+	const processUptime=Math.round(process.uptime());
 ?><!DOCTYPE html>
 <html>
-<head>
-	<title>Server Info</title>
-	<meta charset="utf-8">
-	<meta name=viewport content="width=device-width">
-	<link rel=stylesheet href=/css/main.css>
-	<!--<link rel=stylesheet href=/css/main.dark.css>-->
-	<link rel=stylesheet href=/web/serverInfo/style.css>
-</head>
-<body>
-	<h1>Server Info</h1>
-	<h2>Dieser Server:</h2>
-	<p>Server Name: <?=os.hostname()?></p>
-	<p>Platform: <?=os.platform?></p>
-	<p>HTTP/Web server uptime: <?=Math.round(process.uptime())?>s</p>
-	<p>Server System uptime: <?=execSync("uptime -p")?></p>
-	<p>Server Uhrzeit: <?=new Date()?></p>
-	<p><textarea readonly style="width: 80%; height: 95px;">Arbeitsspeicher (RAM):&#10;<?=execSync("free -h")?></textarea></p>
-	<p><textarea readonly style="width: 80%; height: 95px;">Processor Informationen:&#10;<?=execSync("lscpu")?></textarea></p>
-	<p><textarea readonly style="width: 80%; height: 95px;">Datei System:&#10;<?=execSync("df -h")?></textarea></p>
-
-
-</body>
+	<head>
+		<?=importHead({
+			input,
+			tabs: 2,
+			title: "Server Info",
+			script:[],
+			css:[
+				"/css/main.css",
+				"/css/dynamic.css?imports=underLineHOVER",
+			],
+		})?>
+	</head>
+	<body>
+		<h1>Server Info</h1>
+		<p>Server Name: <b style=color:brown><?=os.hostname()?></b></p>
+		<p>Platform: <b class=underLineHOVER style=cursor:pointer;color:brown onclick="location.href='//google.com/search?q=was+ist+<?=platform?>'"><?=platform?></b></p>
+		<p>HTTP/Web server uptime: <b class=underLineHOVER onclick="location.href='//google.com/search?q=<?=processUptime?>+sec+to+day')" style=cursor:pointer;color:<?=processUptime<3600?"brown":"green"?>><?=processUptime?>s</b></p>
+		<p>Server System uptime: <b style=color:green><?=execSync("uptime -p").toString().trim().split("\n").join("&#10;")?></b></p>
+		<p>Server Uhrzeit: <b style=color:brown><?=new Date()?></b></p>
+		<p><textarea readonly style=width:100%;height:100px>Arbeitsspeicher (RAM):&#10;<?=execSync("free -h").toString().trim().split("\n").join("&#10;").split("total").join("total\t")?></textarea></p>
+		<p><textarea readonly style=width:100%;height:200px>Processor Informationen:&#10;<?=execSync("lscpu").toString().trim().split("\n").join("&#10;")?></textarea></p>
+		<p><textarea readonly style=width:100%;height:200px>Datei System:&#10;<?=execSync("df -h").toString().trim().split("\n").join("&#10;")?></textarea></p>
+	</body>
 </html>
