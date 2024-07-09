@@ -10,7 +10,10 @@
 	const cpuOverload=cpuLoadAvg.map(item=>(item>100)?(item-100):0);
 
 	const rootFs=execSync("df -h | grep /dev/nvme0n1p1").toString().trim().split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
-
+	const tmpFs=execSync("df -h | grep /tmp").toString().trim().split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
+	// execSync("free -h | grep Speicher").toString().trim().split(" ").filter(Boolean).slice(1);
+	// execSync("cat /proc/meminfo").toString().trim().split("\n").map(item=>item.split(" ").filter(Boolean).slice(0,-1).map(i=>isNaN(Number(i))?i:Number(i)).map(i=>i.endsWith&&i.endsWith(":")?i.substring(0,i.length-1):i))
+	const mem=Object.fromEntries(execSync("cat /proc/meminfo").toString().trim().split("\n").map(item=>item.split(" ").filter(Boolean)).map(item=>item.length>2?item.slice(0,-1):item).map(item=>item.map(i=>isNaN(Number(i))?i:Number(i)).map(i=>i.endsWith&&i.endsWith(":")?i.substring(0,i.length-1):i)));
 ?><!DOCTYPE html>
 <html>
 	<head>
@@ -36,6 +39,13 @@
 		<p>Server System uptime: <b style=color:green><?=execSync("uptime -p").toString().trim().split("\n").join("&#10;")?></b></p>
 		<p>Server Uhrzeit: <b style=color:brown><?=new Date()?></b></p>
 		<p style=display:flex><span style=margin-right:8px title="NVMeSSD&#10;Gerät: '<?=rootFs[0]?>'&#10;Eingebunden unter: '<?=rootFs[5]?>'&#10;Speicher: <?=rootFs[2]?>/<?=rootFs[1]?>&#10;Kapazität: <?=rootFs[1]?>&#10;Belegt: <?=rootFs[2]?>, <?=rootFs[4]?>%&#10;Frei: <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%">NVMeSSD:</span> <b title="Belegter Speicher <?=rootFs[2]?>, <?=rootFs[4]?>%"><?=rootFs[4]?>% (<?=rootFs[2]?>)</b><progress title="Belegter Speicher <?=rootFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=rootFs[4]?>></progress><b title="Freier Speicher <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%"><?=(rootFs[4]-100)*-1?>% (<?=rootFs[3]?>)</b></p>
+		<p style=display:flex><span style=margin-right:8px title="TempFS&#10;Gerät: '<?=tmpFs[0]?>'&#10;Eingebunden unter: '<?=tmpFs[5]?>'&#10;Speicher: <?=tmpFs[2]?>/<?=tmpFs[1]?>&#10;Kapazität: <?=tmpFs[1]?>&#10;Belegt: <?=tmpFs[2]?>, <?=tmpFs[4]?>%&#10;Frei: <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%">TempFS:</span> <b title="Belegter Speicher <?=tmpFs[2]?>, <?=tmpFs[4]?>%"><?=tmpFs[4]?>% (<?=tmpFs[2]?>)</b><progress title="Belegter Speicher <?=tmpFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=tmpFs[4]?>></progress><b title="Freier Speicher <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%"><?=(tmpFs[4]-100)*-1?>% (<?=tmpFs[3]?>)</b></p>
+		<p style=display:flex><span style=margin-right:8px >Mem:</span> <b><?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/1024/1024*100)/100?>G)</b>
+			<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
+				<span title=Used_mem style="width:<?=((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=Buffered_mem style="width:<?=(mem.Buffers/mem.MemTotal)*100?>%;height:100%;background-color:lightgreen;display:inline-block;"></span><span title=Cached_mem style="width:<?=(mem.Cached/mem.MemTotal)*100?>%;height:100%;background-color:gold;display:inline-block;"></span><span title=Free_mem style="width:<?=(mem.MemFree/mem.MemTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
+			</span>
+		<b><?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/1024/1024*100)/100?>G)</b></p>
+		
 		<p><textarea readonly style=width:100%;height:100px>Arbeitsspeicher (RAM):&#10;<?=execSync("free -h").toString().trim().split("\n").join("&#10;").split("total").join("total\t")?></textarea></p>
 		<p><textarea readonly style=width:100%;height:200px>Processor Informationen:&#10;<?=execSync("lscpu").toString().trim().split("\n").join("&#10;")?></textarea></p>
 		<p><textarea readonly style=width:100%;height:200px>Datei System:&#10;<?=execSync("df -h").toString().trim().split("\n").join("&#10;")?></textarea></p>
