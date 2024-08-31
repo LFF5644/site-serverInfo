@@ -33,7 +33,7 @@
 		})?>
 	</head>
 	<body>
-		<h1>Server Info</h1>
+		<h1><a href=//lff.one>LFF.one</a> Server-Info</h1>
 		<p>Server Name: <b style=color:brown><?=os.hostname()?></b></p>
 		<p>Platform: <b class=underLineHOVER style=cursor:pointer;color:brown onclick="location.href='//google.com/search?q=was+ist+<?=platform?>'"><?=platform?></b></p>
 		<p>CPU Last in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuLoadAvg.map(item=>`<span style=color:${item>40?(item>80?"red":"orange"):"green"}>${item>100?100:item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p>
@@ -49,10 +49,21 @@
 				<span title=Used_mem style="width:<?=((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=Buffered_mem style="width:<?=(mem.Buffers/mem.MemTotal)*100?>%;height:100%;background-color:lightgreen;display:inline-block;"></span><span title=Cached_mem style="width:<?=(mem.Cached/mem.MemTotal)*100?>%;height:100%;background-color:gold;display:inline-block;"></span><span title=Free_mem style="width:<?=(mem.MemFree/mem.MemTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
 			</span>
 		<b><?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/1024/1024*100)/100?>G)</b></p>
-		
-		<p><textarea readonly style=width:100%;height:100px>Arbeitsspeicher (RAM):&#10;<?=execSync("free -h").toString().trim().split("\n").join("&#10;").split("total").join("total\t")?></textarea></p>
+
+		<?if(input.view==="all"){
+			?><p><textarea readonly style=width:100%;height:100px>Arbeitsspeicher (RAM):&#10;<?=execSync("free -h").toString().trim().split("\n").join("&#10;").split("total").join("total\t")?></textarea></p>
 		<p><textarea readonly style=width:100%;height:200px>Processor Informationen:&#10;<?=execSync("lscpu").toString().trim().split("\n").join("&#10;")?></textarea></p>
 		<p><textarea readonly style=width:100%;height:200px>Datei System:&#10;<?=df.split("\n").join("&#10;")?></textarea></p>
-		<p><textarea readonly style=width:100%;height:200px>Arbeitsspeicher Details:&#10;<?=memInfoStr.split("\n").join("&#10;")?></textarea></p>
+		<p><textarea readonly style=width:100%;height:200px>Arbeitsspeicher Details:&#10;<?=memInfoStr.split("\n").join("&#10;")?></textarea></p><?
+		}?>
+		<form>
+			<input type=hidden name=view value="<?=input.view==='all'?'all':'normal'?>">
+			<input type=hidden name=watch value="<?=!isNaN(Number(input.watch))?Number(input.watch):'off'?>">
+			<p>Einstellungen: 
+				<button onclick="this.form.view.value='<?=input.view==='all'?'normal':'all'?>'"><?=input.view==="all"?"Normale":"Erweitetere"?>-Ansicht</button>
+				<button onclick="this.form.watch.value='<?=Number(input.watch)>2?'off':'30'?>'">Automatisch-Neuladen <?=Number(input.watch)>2?"abschalten":"einschalten"?></button>
+			</p>
+		</form>
+		<footer>&copy; <a href=//lff.one>LFF.one</a></footer>
 	</body>
 </html>
