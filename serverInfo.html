@@ -1,9 +1,11 @@
 <?
 	const os=require("os");
 	const {execSync}=require("child_process");
-	const {importHead}=globals.functions;
+	const {importHead,allowedPath}=globals.functions;
 	const platform=process.platform==="linux"?"Linux":(process.platform==="win32"?"Windows":process.platform);
 	const processUptime=Math.round(process.uptime());
+
+	allowedPath({request,response},"/serverInfo");
 
 	const cpuLogicalCores=Number(execSync("nproc").toString().trim());
 	const cpuLoadAvg=execSync("cat /proc/loadavg").toString().trim().split(" ").map(Number).splice(0,3).map(item=>Math.round(item/cpuLogicalCores*10000)/100);
