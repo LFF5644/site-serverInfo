@@ -1,0 +1,33 @@
+{
+	"name":"Landos Server-Auslastung",
+	"description":"Server Status und Auslastung",
+	"short_name":"Server-Info",
+	"icons":[
+		{
+			"sizes":"512x512",
+			"type": "image/png",
+			"src":"/files/img/icon/serverInfo/serverInfo512.png"
+		},
+		{
+			"sizes":"128x128",
+			"type": "image/png",
+			"src":"/files/img/icon/serverInfo/serverInfo128.png"
+		},
+		{
+			"sizes":"255x255",
+			"type": "image/png",
+			"src":"/files/img/icon/serverInfo/serverInfo255.png"
+		},
+		{
+			"sizes":"50x50 any",
+			"type": "image/png",
+			"src":"/files/img/icon/serverInfo/serverInfo50.png"
+		}
+	],
+	"scope":"/serverInfo/",
+	"start_url":"/serverInfo/?type=app",
+	"id":"/serverInfo/?type=app",
+	"display":"standalone",
+	"theme_color": "#103",
+	"background_color":"#103"
+}
