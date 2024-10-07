@@ -1,6 +1,6 @@
 {
 	"name":"Landos Server-Auslastung",
-	"description":"Server Status und Auslastung",
+	"description":"Server Status und Auslastung von Landos-Server (LFF-ServerN95)",
 	"short_name":"Server-Info",
 	"icons":[
 		{
@@ -22,6 +22,21 @@
 			"sizes":"50x50 any",
 			"type": "image/png",
 			"src":"/files/img/icon/serverInfo/serverInfo50.png"
+		},
+		{
+			"sizes":"64x64",
+			"type": "image/png",
+			"src":"/files/img/icon/serverInfo/serverInfo64.png"
+		},
+		{
+			"sizes":"32x32",
+			"type": "image/png",
+			"src":"/files/img/icon/serverInfo/serverInfo32.png"
+		},
+		{
+			"sizes":"16x16",
+			"type": "image/png",
+			"src":"/files/img/icon/serverInfo/serverInfo16.png"
 		}
 	],
 	"scope":"/serverInfo/",

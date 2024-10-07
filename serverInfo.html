@@ -25,7 +25,7 @@
 		<?=importHead({
 			input,
 			tabs: 2,
-			title: "Server Info",
+			title: isNaN(Number(input.watch))?"Server Info":"Server Last "+cpuLoadAvg[0]+"%",
 			script:[],
 			css:[
 				"/css/main.css",
@@ -36,6 +36,9 @@
 				"255x255": "/files/img/icon/serverInfo/serverInfo255.png",
 				"128x128": "/files/img/icon/serverInfo/serverInfo128.png",
 				"50x50": "/files/img/icon/serverInfo/serverInfo50.png",
+				"64x64": "/files/img/icon/serverInfo/serverInfo64.png",
+				"32x32": "/files/img/icon/serverInfo/serverInfo32.png",
+				"16x16": "/files/img/icon/serverInfo/serverInfo16.png",
 			},
 			manifest: "/web/serverInfo/manifest.json",
 			watchAllow: true,
