@@ -7,8 +7,11 @@
 
 	allowedPath({request,response},"/serverInfo");
 
+	const stats=Object.fromEntries(fs.readFileSync("/proc/stat","utf-8").trim().split("\n").map(item=>item.split("  ").join(" ").split(" ").map(item=>isNaN(Number(item))?item:Number(item))).map(item=>[[item[0]],item.filter(item=>!isNaN(item))]));
+	const cpuTimeTotal=stats.cpu[0]+stats.cpu[1]+stats.cpu[2]+stats.cpu[3]+stats.cpu[4]+stats.cpu[5]+stats.cpu[6]+stats.cpu[7]+stats.cpu[8]+stats.cpu[9];
+
 	const cpuLogicalCores=Number(execSync("nproc").toString().trim());
-	const cpuLoadAvg=execSync("cat /proc/loadavg").toString().trim().split(" ").map(Number).splice(0,3).map(item=>Math.round(item/cpuLogicalCores*10000)/100);
+	const cpuLoadAvg=fs.readFileSync("/proc/loadavg","utf-8").trim().trim().split(" ").map(Number).splice(0,3).map(item=>Math.round(item/cpuLogicalCores*10000)/100);
 	const cpuOverload=cpuLoadAvg.map(item=>(item>100)?(item-100):0);
 
 	let backupExternFs=false;
@@ -17,7 +20,7 @@
 	const tmpFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/tmp"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	if(df.split("\n").some(item=>item.includes("/media/backup-extern"))) backupExternFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/media/backup-extern"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	
-	const memInfoStr=execSync("cat /proc/meminfo").toString().trim();
+	const memInfoStr=fs.readFileSync("/proc/meminfo","utf-8").trim();
 	const mem=Object.fromEntries(memInfoStr.split("\n").map(item=>item.split(" ").filter(Boolean)).map(item=>item.length>2?item.slice(0,-1):item).map(item=>item.map(i=>isNaN(Number(i))?i:Number(i)).map(i=>i.endsWith&&i.endsWith(":")?i.substring(0,i.length-1):i)));
 ?><!DOCTYPE html>
 <html>
@@ -25,7 +28,7 @@
 		<?=importHead({
 			input,
 			tabs: 2,
-			title: isNaN(Number(input.watch))?"Server Info":"Server Last "+cpuLoadAvg[0]+"%",
+			title: isNaN(Number(input.watch))?"Server-Info":"Server Last "+cpuLoadAvg[0]+"%",
 			script:[],
 			css:[
 				"/css/main.css",
@@ -47,20 +50,60 @@
 	<body>
 		<h1><a href=//lff.one>LFF.one</a> Server-Info</h1>
 		<p>Server Name: <b style=color:brown><?=os.hostname()?></b></p>
-		<p>Platform: <b class=underLineHOVER style=cursor:pointer;color:brown onclick="location.href='//google.com/search?q=was+ist+<?=platform?>'"><?=platform?></b></p>
+		<p>Platform: <a style=cursor:pointer;color:brown;font-weight:bold; href="//google.com/search?q=was+ist+<?=platform?>" target=_blank><?=platform?></a></p>
 		<p>CPU Last in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuLoadAvg.map(item=>`<span style=color:${item>40?(item>80?"red":"orange"):"green"}>${item>100?100:item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p>
 		<?if(cpuOverload.some(item=>item>0)){?><p>CPU Überlast in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuOverload.map(item=>`<span style=color:${item>0?"red":"green"}>${item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p><?}?>
-		<p>HTTP/Web server uptime: <b class=underLineHOVER onclick="location.href='//google.com/search?q=<?=processUptime?>+sec+to+hours'" style=cursor:pointer;color:<?=processUptime<3600?"brown":"green"?>><?=processUptime?>s</b></p>
+		<p>CPU Zeit <code>(seit systemstart)</code>:</p>
+		<ul>
+			<li style="margin: 10px 0 10px 0">
+				<span style=display:flex>Graph mit Idle: 
+					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
+						<span title=CPU_user style="width:<?=stats.cpu[0]/cpuTimeTotal*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=CPU_nice style="width:<?=stats.cpu[1]/cpuTimeTotal*100?>%;height:100%;background-color:green;display:inline-block;"></span><span title=CPU_system style="width:<?=stats.cpu[2]/cpuTimeTotal*100?>%;height:100%;background-color:red;display:inline-block;"></span><span title=CPU_ioWait style="width:<?=stats.cpu[4]/cpuTimeTotal*100?>%;height:100%;background-color:yellow;display:inline-block;"></span><span title=CPU_idle style="width:<?=stats.cpu[3]/cpuTimeTotal*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
+					</span>
+				</span>
+			</li>
+			<li style="margin: 10px 0 10px 0">
+				<span style=display:flex>Graph ohne Idle: 
+					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
+						<span title=CPU_user style="width:<?=stats.cpu[0]/(cpuTimeTotal-stats.cpu[3])*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=CPU_nice style="width:<?=stats.cpu[1]/(cpuTimeTotal-stats.cpu[3])*100?>%;height:100%;background-color:green;display:inline-block;"></span><span title=CPU_system style="width:<?=stats.cpu[2]/(cpuTimeTotal-stats.cpu[3])*100?>%;height:100%;background-color:red;display:inline-block;"></span><span title=CPU_ioWait style="width:<?=stats.cpu[4]/(cpuTimeTotal-stats.cpu[3])*100?>%;height:100%;background-color:yellow;display:inline-block;"></span>
+					</span>
+				</span>
+			</li>
+			<li><span style=background-color:blue;color:white>User</span> (durch Benutzer ausgeführt): <b><?=Math.round(stats.cpu[0]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[0]/1000/60)?> min)</b></li>
+			<li><span style=background-color:green;color:white>Nice</span> (Prozesse mit Priorität): <b><?=Math.round(stats.cpu[1]/cpuTimeTotal*10000)/100?>% (<?=stats.cpu[1]?> ms)</b></li>
+			<li><span style=background-color:red;color:white>System</span> (Kernel/Betrieb-System selbst): <b><?=Math.round(stats.cpu[2]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[2]/1000/60)?> min)</b></li>
+			<li><span style=background-color:yellow;color:black>IO-Wait</span> (warten auf Festplatte): <b><?=Math.round(stats.cpu[4]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[4]/1000)?> sec)</b></li>
+			<li><span style=background-color:gray;color:black>Idle</span> (keine Auslastung): <b><?=Math.round(stats.cpu[3]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[3]/1000/60/60)?> hour)</b></li>
+		</ul>
+		<p>HTTP/Web server uptime: <a href="//google.com/search?q=<?=processUptime?>+sec+to+hours" target=_blank style=cursor:pointer;font-weight:bold;color:<?=processUptime<3600?"brown":"green"?>><?=processUptime?>s</a></p>
 		<p>Server System uptime: <b style=color:green><?=execSync("uptime -p").toString().trim().split("\n").join("&#10;")?></b></p>
 		<p>Server Uhrzeit: <b style=color:brown><?=new Date()?></b></p>
 		<p style=display:flex><span style=margin-right:8px title="NVMeSSD&#10;Gerät: '<?=rootFs[0]?>'&#10;Eingebunden unter: '<?=rootFs[5]?>'&#10;Speicher: <?=rootFs[2]?>/<?=rootFs[1]?>&#10;Kapazität: <?=rootFs[1]?>&#10;Belegt: <?=rootFs[2]?>, <?=rootFs[4]?>%&#10;Frei: <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%">NVMeSSD:</span> <b title="Belegter Speicher <?=rootFs[2]?>, <?=rootFs[4]?>%"><?=rootFs[4]?>% (<?=rootFs[2]?>)</b><progress title="Belegter Speicher <?=rootFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=rootFs[4]?>></progress><b title="Freier Speicher <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%"><?=(rootFs[4]-100)*-1?>% (<?=rootFs[3]?>)</b></p>
 		<?if(backupExternFs){?><p style=display:flex><span style=margin-right:8px title="BackupHDD&#10;Gerät: '<?=backupExternFs[0]?>'&#10;Eingebunden unter: '<?=backupExternFs[5]?>'&#10;Speicher: <?=backupExternFs[2]?>/<?=backupExternFs[1]?>&#10;Kapazität: <?=backupExternFs[1]?>&#10;Belegt: <?=backupExternFs[2]?>, <?=backupExternFs[4]?>%&#10;Frei: <?=backupExternFs[3]?>, <?=(backupExternFs[4]-100)*-1?>%">BackupHDD:</span> <b title="Belegter Speicher <?=backupExternFs[2]?>, <?=backupExternFs[4]?>%"><?=backupExternFs[4]?>% (<?=backupExternFs[2]?>)</b><progress title="Belegter Speicher <?=backupExternFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=backupExternFs[4]?>></progress><b title="Freier Speicher <?=backupExternFs[3]?>, <?=(backupExternFs[4]-100)*-1?>%"><?=(backupExternFs[4]-100)*-1?>% (<?=backupExternFs[3]?>)</b></p><?}?>
 		<p style=display:flex><span style=margin-right:8px title="TempFS&#10;Gerät: '<?=tmpFs[0]?>'&#10;Eingebunden unter: '<?=tmpFs[5]?>'&#10;Speicher: <?=tmpFs[2]?>/<?=tmpFs[1]?>&#10;Kapazität: <?=tmpFs[1]?>&#10;Belegt: <?=tmpFs[2]?>, <?=tmpFs[4]?>%&#10;Frei: <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%">TempFS:</span> <b title="Belegter Speicher <?=tmpFs[2]?>, <?=tmpFs[4]?>%"><?=tmpFs[4]?>% (<?=tmpFs[2]?>)</b><progress title="Belegter Speicher <?=tmpFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=tmpFs[4]?>></progress><b title="Freier Speicher <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%"><?=(tmpFs[4]-100)*-1?>% (<?=tmpFs[3]?>)</b></p>
-		<p style=display:flex><span style=margin-right:8px >Mem:</span> <b><?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/1024/1024*100)/100?>G)</b>
-			<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
-				<span title=Used_mem style="width:<?=((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=Buffered_mem style="width:<?=(mem.Buffers/mem.MemTotal)*100?>%;height:100%;background-color:lightgreen;display:inline-block;"></span><span title=Cached_mem style="width:<?=(mem.Cached/mem.MemTotal)*100?>%;height:100%;background-color:gold;display:inline-block;"></span><span title=Free_mem style="width:<?=(mem.MemFree/mem.MemTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
-			</span>
-		<b><?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/1024/1024*100)/100?>G)</b></p>
+		<p>Arbeitsspeicher Auslastung:</p>
+		<ul>
+			<li style="margin: 10px 0 10px 0">
+				<span style=display:flex>Graph: 
+					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
+						<span title=Used_mem style="width:<?=((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=Buffered_mem style="width:<?=(mem.Buffers/mem.MemTotal)*100?>%;height:100%;background-color:lightgreen;display:inline-block;"></span><span title=Cached_mem style="width:<?=(mem.Cached/mem.MemTotal)*100?>%;height:100%;background-color:gold;display:inline-block;"></span><span title=Free_mem style="width:<?=(mem.MemFree/mem.MemTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
+					</span>
+				</span>
+			</li>
+			<li style="margin: 10px 0 10px 0">
+				<span style=display:flex>Swap: 
+					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
+						<span title=SWAP_used style="width:<?=((mem.SwapTotal-mem.SwapFree)/mem.SwapTotal)*100?>%;height:100%;background-color:orange;display:inline-block;"></span><span title=SWAP_free style="width:<?=(mem.SwapFree/mem.SwapTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
+					</span>
+				</span>
+			</li>
+			<li><span style=background-color:blue;color:white>Memory Used</span> (wird derzeit benutzt): <b><?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/1024/1024*100)/100?>G)</b></li>
+			<li><span style=background-color:lightgreen;color:black>Memory Buffered</span> (schreib cache): <b><?=Math.round(mem.Buffers/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Buffers/1024*100)/100?>M)</b></li>
+			<li><span style=background-color:yellow;color:black>Memory Cached</span> (lese cache): <b><?=Math.round(mem.Cached/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Cached/1024/1024*100)/100?>G)</b></li>
+			<li><span style=background-color:lightgray;color:black>Memory Free</span> (unbenutzter Speicher): <b><?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/1024/1024*100)/100?>G)</b></li>
+			<li><span style=background-color:orange;color:black>Swap Used</span> (Auslagerungsspeicher Benutzt): <b><?=Math.round((mem.SwapTotal-mem.SwapFree)/mem.SwapTotal*1000)/10?>% (<?=Math.round((mem.SwapCached)/1024/1024*100)/100?>G)</b></li>
+			<li><span style=background-color:lightgray;color:black>Swap Free</span> (Auslagerungsspeicher verfügbar): <b><?=Math.round(mem.SwapFree/mem.SwapTotal*1000)/10?>% (<?=Math.round((mem.SwapFree)/1024/1024*100)/100?>G)</b></li>
+		</ul>
 
 		<?if(input.view==="all"){
 			?><p><textarea readonly style=width:100%;height:100px>Arbeitsspeicher (RAM):&#10;<?=execSync("free -h").toString().trim().split("\n").join("&#10;").split("total").join("total\t")?></textarea></p>
