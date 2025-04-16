@@ -1,5 +1,6 @@
 <?
 	const os=require("os");
+	const fsp=require("fs/promises");
 	const {execSync}=require("child_process");
 	const {importHead,allowedPath}=globals.functions;
 	const platform=process.platform==="linux"?"Linux":(process.platform==="win32"?"Windows":process.platform);
@@ -7,28 +8,40 @@
 
 	allowedPath({request,response},"/serverInfo");
 
-	const stats=Object.fromEntries(fs.readFileSync("/proc/stat","utf-8").trim().split("\n").map(item=>item.split("  ").join(" ").split(" ").map(item=>isNaN(Number(item))?item:Number(item))).map(item=>[[item[0]],item.filter(item=>!isNaN(item))]));
+	const stats=Object.fromEntries((await fsp.readFile("/proc/stat","utf-8")).trim().split("\n").map(item=>item.split("  ").join(" ").split(" ").map(item=>isNaN(Number(item))?item:Number(item))).map(item=>[[item[0]],item.filter(item=>!isNaN(item))]));
 	const cpuTimeTotal=stats.cpu[0]+stats.cpu[1]+stats.cpu[2]+stats.cpu[3]+stats.cpu[4]+stats.cpu[5]+stats.cpu[6]+stats.cpu[7]+stats.cpu[8]+stats.cpu[9];
-
+	const runningProcesses=stats.procs_running[0];
+	const cpuCurrentMaxFreq=Number((await fsp.readFile("/sys/bus/cpu/devices/cpu0/cpufreq/scaling_max_freq","utf-8")).trim())/1000;
+	const cpuCurrentMinFreq=Number((await fsp.readFile("/sys/bus/cpu/devices/cpu0/cpufreq/scaling_min_freq","utf-8")).trim())/1000;
+	const cpuMaxFreq=Number((await fsp.readFile("/sys/bus/cpu/devices/cpu0/cpufreq/cpuinfo_max_freq","utf-8")).trim())/1000;
+	const cpuMinFreq=Number((await fsp.readFile("/sys/bus/cpu/devices/cpu0/cpufreq/cpuinfo_min_freq","utf-8")).trim())/1000;
 	const cpuLogicalCores=Number(execSync("nproc").toString().trim());
-	const cpuLoadAvg=fs.readFileSync("/proc/loadavg","utf-8").trim().trim().split(" ").map(Number).splice(0,3).map(item=>Math.round(item/cpuLogicalCores*10000)/100);
+	const cpuLoadAvg=(await fsp.readFile("/proc/loadavg","utf-8")).trim().trim().split(" ").map(Number).splice(0,3).map(item=>Math.round(item/cpuLogicalCores*10000)/100);
 	const cpuOverload=cpuLoadAvg.map(item=>(item>100)?(item-100):0);
 
 	let backupExternFs=false;
 	const df=execSync("df -h").toString().trim();
 	const rootFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/dev/nvme0n1p1"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
+	const dataFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/dev/sda"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	const tmpFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/tmp"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	if(df.split("\n").some(item=>item.includes("/media/backup-extern"))) backupExternFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/media/backup-extern"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	
-	const memInfoStr=fs.readFileSync("/proc/meminfo","utf-8").trim();
+	const memInfoStr=(await fsp.readFile("/proc/meminfo","utf-8")).trim();
 	const mem=Object.fromEntries(memInfoStr.split("\n").map(item=>item.split(" ").filter(Boolean)).map(item=>item.length>2?item.slice(0,-1):item).map(item=>item.map(i=>isNaN(Number(i))?i:Number(i)).map(i=>i.endsWith&&i.endsWith(":")?i.substring(0,i.length-1):i)));
 ?><!DOCTYPE html>
-<html>
+<html lang=de>
 	<head>
 		<?=importHead({
 			input,
 			tabs: 2,
-			title: isNaN(Number(input.watch))?"Server-Info":"Server Last "+cpuLoadAvg[0]+"%",
+			title: isNaN(Number(input.watch))?"Server-Info":"Server-Last "+cpuLoadAvg[0]+"%",
+			description: os.hostname()+" überwachen!",
+			keywords:[
+				"server", "info", "taskmgr", "task-manager","cpuinfo",
+				"meminfo","www-status","server status", "server info",
+				"lff.one server", "lff server", "lff5644 server",
+				"lff webserver", os.hostname(), os.platform(),
+			],
 			script:[],
 			css:[
 				"/css/main.css",
@@ -54,6 +67,7 @@
 		<p>CPU Last in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuLoadAvg.map(item=>`<span style=color:${item>40?(item>80?"red":"orange"):"green"}>${item>100?100:item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p>
 		<?if(cpuOverload.some(item=>item>0)){?><p>CPU Überlast in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuOverload.map(item=>`<span style=color:${item>0?"red":"green"}>${item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p><?}?>
 		<p>CPU Zeit <code>(seit systemstart)</code>:</p>
+		<?if(cpuMaxFreq!==cpuCurrentMaxFreq){?><p><b style=color:orange>INFO</b>: <span>CPU Läuft auf <b>REDUZIERTER</b> Leistung, maximal <?=cpuCurrentMaxFreq/1000?> GHz</span></p><?}?>
 		<ul>
 			<li style="margin: 10px 0 10px 0">
 				<span style=display:flex>Graph mit Idle: 
@@ -79,6 +93,7 @@
 		<p>Server System uptime: <b style=color:green><?=execSync("uptime -p").toString().trim().split("\n").join("&#10;")?></b></p>
 		<p>Server Uhrzeit: <b style=color:brown><?=new Date()?></b></p>
 		<p style=display:flex><span style=margin-right:8px title="NVMeSSD&#10;Gerät: '<?=rootFs[0]?>'&#10;Eingebunden unter: '<?=rootFs[5]?>'&#10;Speicher: <?=rootFs[2]?>/<?=rootFs[1]?>&#10;Kapazität: <?=rootFs[1]?>&#10;Belegt: <?=rootFs[2]?>, <?=rootFs[4]?>%&#10;Frei: <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%">NVMeSSD:</span> <b title="Belegter Speicher <?=rootFs[2]?>, <?=rootFs[4]?>%"><?=rootFs[4]?>% (<?=rootFs[2]?>)</b><progress title="Belegter Speicher <?=rootFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=rootFs[4]?>></progress><b title="Freier Speicher <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%"><?=(rootFs[4]-100)*-1?>% (<?=rootFs[3]?>)</b></p>
+		<p style=display:flex><span style=margin-right:8px title="Daten-HDD&#10;Gerät: '<?=dataFs[0]?>'&#10;Eingebunden unter: '<?=dataFs[5]?>'&#10;Speicher: <?=dataFs[2]?>/<?=dataFs[1]?>&#10;Kapazität: <?=dataFs[1]?>&#10;Belegt: <?=dataFs[2]?>, <?=dataFs[4]?>%&#10;Frei: <?=dataFs[3]?>, <?=(dataFs[4]-100)*-1?>%">Daten-HDD:</span> <b title="Belegter Speicher <?=dataFs[2]?>, <?=dataFs[4]?>%"><?=dataFs[4]?>% (<?=dataFs[2]?>)</b><progress title="Belegter Speicher <?=dataFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=dataFs[4]?>></progress><b title="Freier Speicher <?=dataFs[3]?>, <?=(dataFs[4]-100)*-1?>%"><?=(dataFs[4]-100)*-1?>% (<?=dataFs[3]?>)</b></p>
 		<?if(backupExternFs){?><p style=display:flex><span style=margin-right:8px title="BackupHDD&#10;Gerät: '<?=backupExternFs[0]?>'&#10;Eingebunden unter: '<?=backupExternFs[5]?>'&#10;Speicher: <?=backupExternFs[2]?>/<?=backupExternFs[1]?>&#10;Kapazität: <?=backupExternFs[1]?>&#10;Belegt: <?=backupExternFs[2]?>, <?=backupExternFs[4]?>%&#10;Frei: <?=backupExternFs[3]?>, <?=(backupExternFs[4]-100)*-1?>%">BackupHDD:</span> <b title="Belegter Speicher <?=backupExternFs[2]?>, <?=backupExternFs[4]?>%"><?=backupExternFs[4]?>% (<?=backupExternFs[2]?>)</b><progress title="Belegter Speicher <?=backupExternFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=backupExternFs[4]?>></progress><b title="Freier Speicher <?=backupExternFs[3]?>, <?=(backupExternFs[4]-100)*-1?>%"><?=(backupExternFs[4]-100)*-1?>% (<?=backupExternFs[3]?>)</b></p><?}?>
 		<p style=display:flex><span style=margin-right:8px title="TempFS&#10;Gerät: '<?=tmpFs[0]?>'&#10;Eingebunden unter: '<?=tmpFs[5]?>'&#10;Speicher: <?=tmpFs[2]?>/<?=tmpFs[1]?>&#10;Kapazität: <?=tmpFs[1]?>&#10;Belegt: <?=tmpFs[2]?>, <?=tmpFs[4]?>%&#10;Frei: <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%">TempFS:</span> <b title="Belegter Speicher <?=tmpFs[2]?>, <?=tmpFs[4]?>%"><?=tmpFs[4]?>% (<?=tmpFs[2]?>)</b><progress title="Belegter Speicher <?=tmpFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=tmpFs[4]?>></progress><b title="Freier Speicher <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%"><?=(tmpFs[4]-100)*-1?>% (<?=tmpFs[3]?>)</b></p>
 		<p>Arbeitsspeicher Auslastung:</p>
