@@ -1,6 +1,6 @@
 {
 	"name":"Landos Server-Auslastung",
-	"description":"Server Status und Auslastung von Landos-Server (LFF-ServerN95)",
+	"description":"Server-Status und Auslastung von Landos-Server (LFF-ServerN95)",
 	"short_name":"Server-Info",
 	"icons":[
 		{

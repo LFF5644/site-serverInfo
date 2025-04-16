@@ -66,24 +66,28 @@
 		<p>Platform: <a style=cursor:pointer;color:brown;font-weight:bold; href="//google.com/search?q=was+ist+<?=platform?>" target=_blank><?=platform?></a></p>
 		<p>CPU Last in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuLoadAvg.map(item=>`<span style=color:${item>40?(item>80?"red":"orange"):"green"}>${item>100?100:item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p>
 		<?if(cpuOverload.some(item=>item>0)){?><p>CPU Überlast in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuOverload.map(item=>`<span style=color:${item>0?"red":"green"}>${item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p><?}?>
+		<?if(cpuMaxFreq!==cpuCurrentMaxFreq){?><p><b style=color:orange>INFO</b>: <span>CPU Läuft auf <b>REDUZIERTER</b> Leistung, maximal <b><?=cpuCurrentMaxFreq/1000<1?cpuCurrentMaxFreq:cpuCurrentMaxFreq/1000?> <?=cpuCurrentMaxFreq/1000<1?"MHz":"GHz"?></b></span></p><?}?>
+		<p>Aktive CPU Kerne: <b style=color:<?=cpuLogicalCores>1?"green":"red"?>><?=cpuLogicalCores?></b></p>
 		<p>CPU Zeit <code>(seit systemstart)</code>:</p>
-		<?if(cpuMaxFreq!==cpuCurrentMaxFreq){?><p><b style=color:orange>INFO</b>: <span>CPU Läuft auf <b>REDUZIERTER</b> Leistung, maximal <?=cpuCurrentMaxFreq/1000?> GHz</span></p><?}?>
 		<ul>
 			<li style="margin: 10px 0 10px 0">
-				<span style=display:flex>Graph mit Idle: 
+				<span style=display:flex>CPU mit Idle: 
 					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
 						<span title=CPU_user style="width:<?=stats.cpu[0]/cpuTimeTotal*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=CPU_nice style="width:<?=stats.cpu[1]/cpuTimeTotal*100?>%;height:100%;background-color:green;display:inline-block;"></span><span title=CPU_system style="width:<?=stats.cpu[2]/cpuTimeTotal*100?>%;height:100%;background-color:red;display:inline-block;"></span><span title=CPU_ioWait style="width:<?=stats.cpu[4]/cpuTimeTotal*100?>%;height:100%;background-color:yellow;display:inline-block;"></span><span title=CPU_idle style="width:<?=stats.cpu[3]/cpuTimeTotal*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
 					</span>
 				</span>
 			</li>
-			<li style="margin: 10px 0 10px 0">
-				<span style=display:flex>Graph ohne Idle: 
+<?
+	if(input.view==="all"){
+?>			<li style="margin: 10px 0 10px 0">
+				<span style=display:flex>CPU ohne Idle: 
 					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
 						<span title=CPU_user style="width:<?=stats.cpu[0]/(cpuTimeTotal-stats.cpu[3])*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=CPU_nice style="width:<?=stats.cpu[1]/(cpuTimeTotal-stats.cpu[3])*100?>%;height:100%;background-color:green;display:inline-block;"></span><span title=CPU_system style="width:<?=stats.cpu[2]/(cpuTimeTotal-stats.cpu[3])*100?>%;height:100%;background-color:red;display:inline-block;"></span><span title=CPU_ioWait style="width:<?=stats.cpu[4]/(cpuTimeTotal-stats.cpu[3])*100?>%;height:100%;background-color:yellow;display:inline-block;"></span>
 					</span>
 				</span>
 			</li>
-			<li><span style=background-color:blue;color:white>User</span> (durch Benutzer ausgeführt): <b><?=Math.round(stats.cpu[0]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[0]/1000/60)?> min)</b></li>
+<?}
+?>			<li><span style=background-color:blue;color:white>User</span> (durch Benutzer ausgeführt): <b><?=Math.round(stats.cpu[0]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[0]/1000/60)?> min)</b></li>
 			<li><span style=background-color:green;color:white>Nice</span> (Prozesse mit Priorität): <b><?=Math.round(stats.cpu[1]/cpuTimeTotal*10000)/100?>% (<?=stats.cpu[1]?> ms)</b></li>
 			<li><span style=background-color:red;color:white>System</span> (Kernel/Betrieb-System selbst): <b><?=Math.round(stats.cpu[2]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[2]/1000/60)?> min)</b></li>
 			<li><span style=background-color:yellow;color:black>IO-Wait</span> (warten auf Festplatte): <b><?=Math.round(stats.cpu[4]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[4]/1000)?> sec)</b></li>
@@ -99,7 +103,7 @@
 		<p>Arbeitsspeicher Auslastung:</p>
 		<ul>
 			<li style="margin: 10px 0 10px 0">
-				<span style=display:flex>Graph: 
+				<span style=display:flex>Mem: 
 					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
 						<span title=Used_mem style="width:<?=((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=Buffered_mem style="width:<?=(mem.Buffers/mem.MemTotal)*100?>%;height:100%;background-color:lightgreen;display:inline-block;"></span><span title=Cached_mem style="width:<?=(mem.Cached/mem.MemTotal)*100?>%;height:100%;background-color:gold;display:inline-block;"></span><span title=Free_mem style="width:<?=(mem.MemFree/mem.MemTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
 					</span>
