@@ -10,7 +10,7 @@
 
 	const stats=Object.fromEntries((await fsp.readFile("/proc/stat","utf-8")).trim().split("\n").map(item=>item.split("  ").join(" ").split(" ").map(item=>isNaN(Number(item))?item:Number(item))).map(item=>[[item[0]],item.filter(item=>!isNaN(item))]));
 	const cpuTimeTotal=stats.cpu[0]+stats.cpu[1]+stats.cpu[2]+stats.cpu[3]+stats.cpu[4]+stats.cpu[5]+stats.cpu[6]+stats.cpu[7]+stats.cpu[8]+stats.cpu[9];
-	const runningProcesses=stats.procs_running[0];
+	const runningProcesses=stats.procs_running[0]-1; // removes the webserver.
 	const cpuCurrentMaxFreq=Number((await fsp.readFile("/sys/bus/cpu/devices/cpu0/cpufreq/scaling_max_freq","utf-8")).trim())/1000;
 	const cpuCurrentMinFreq=Number((await fsp.readFile("/sys/bus/cpu/devices/cpu0/cpufreq/scaling_min_freq","utf-8")).trim())/1000;
 	const cpuMaxFreq=Number((await fsp.readFile("/sys/bus/cpu/devices/cpu0/cpufreq/cpuinfo_max_freq","utf-8")).trim())/1000;
@@ -22,7 +22,7 @@
 	let backupExternFs=false;
 	const df=execSync("df -h").toString().trim();
 	const rootFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/dev/nvme0n1p1"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
-	const dataFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/dev/sda"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
+	const dataFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/dev/bcache0"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	const tmpFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/tmp"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	if(df.split("\n").some(item=>item.includes("/media/backup-extern"))) backupExternFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/media/backup-extern"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	
@@ -68,6 +68,7 @@
 		<?if(cpuOverload.some(item=>item>0)){?><p>CPU Überlast in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuOverload.map(item=>`<span style=color:${item>0?"red":"green"}>${item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p><?}?>
 		<?if(cpuMaxFreq!==cpuCurrentMaxFreq){?><p><b style=color:orange>INFO</b>: <span>CPU Läuft auf <b>REDUZIERTER</b> Leistung, maximal <b><?=cpuCurrentMaxFreq/1000<1?cpuCurrentMaxFreq:cpuCurrentMaxFreq/1000?> <?=cpuCurrentMaxFreq/1000<1?"MHz":"GHz"?></b></span></p><?}?>
 		<p>Aktive CPU Kerne: <b style=color:<?=cpuLogicalCores>1?"green":"red"?>><?=cpuLogicalCores?></b></p>
+		<p>Aktive Prozesse: <b><?=runningProcesses?></b></p>
 		<p>CPU Zeit <code>(seit systemstart)</code>:</p>
 		<ul>
 			<li style="margin: 10px 0 10px 0">
