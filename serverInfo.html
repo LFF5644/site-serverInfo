@@ -19,13 +19,26 @@
 	const cpuLoadAvg=(await fsp.readFile("/proc/loadavg","utf-8")).trim().trim().split(" ").map(Number).splice(0,3).map(item=>Math.round(item/cpuLogicalCores*10000)/100);
 	const cpuOverload=cpuLoadAvg.map(item=>(item>100)?(item-100):0);
 
+	const temps=[
+		// NAME, CURRENT_TEMP, MIN_TEMP, MAX_TEMP, WARN_TEMP, CRIT_TEMP
+		["CPU", Number((await fsp.readFile("/sys/class/thermal/thermal_zone1/temp","utf-8")).trim())/1000, 40, 90, 55, 70], // n95
+		["Gehäuse", Number((await fsp.readFile("/sys/class/thermal/thermal_zone0/temp","utf-8")).trim())/1000, 20, 40, 30, 35], // n95
+		["NVMeSSD", Number((await fsp.readFile("/sys/class/hwmon/hwmon1/temp1_input","utf-8")).trim())/1000, 30, 90, 50, 60], // n95
+	];
+	const WARN_COLOR="orange";
+	const CRIT_COLOR="red";
+	const WARN_EMOJI="⚠️";
+
+
 	let backupExternFs=false;
 	const df=execSync("df -h").toString().trim();
 	const rootFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/dev/nvme0n1p1"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	const dataFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/dev/bcache0"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	const tmpFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/tmp"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
 	if(df.split("\n").some(item=>item.includes("/media/backup-extern"))) backupExternFs=df.split("\n")[df.split("\n").findIndex(item=>item.includes("/media/backup-extern"))].split(" ").filter(Boolean).map(item=>item.endsWith("%")?Number(item.slice(0,item.length-1)):item);
-	
+
+	const cacheFreePercent=Number((await fsp.readFile("/sys/fs/bcache/37b3d5d6-08ab-4675-b932-e0457a714a45/cache_available_percent","utf-8")).trim());
+
 	const memInfoStr=(await fsp.readFile("/proc/meminfo","utf-8")).trim();
 	const mem=Object.fromEntries(memInfoStr.split("\n").map(item=>item.split(" ").filter(Boolean)).map(item=>item.length>2?item.slice(0,-1):item).map(item=>item.map(i=>isNaN(Number(i))?i:Number(i)).map(i=>i.endsWith&&i.endsWith(":")?i.substring(0,i.length-1):i)));
 ?><!DOCTYPE html>
@@ -94,11 +107,25 @@
 			<li><span style=background-color:yellow;color:black>IO-Wait</span> (warten auf Festplatte): <b><?=Math.round(stats.cpu[4]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[4]/1000)?> sec)</b></li>
 			<li><span style=background-color:gray;color:black>Idle</span> (keine Auslastung): <b><?=Math.round(stats.cpu[3]/cpuTimeTotal*10000)/100?>% (<?=Math.round(stats.cpu[3]/1000/60/60)?> hour)</b></li>
 		</ul>
+		<p>Temperaturen des Systems: </p>
+		<ul>
+<?
+	for(const item of temps){
+		const [name,current_temp,min,max,warn_temp,crit_temp]=item;
+		let color="auto";
+		if(current_temp>crit_temp) color=CRIT_COLOR;
+		else if(current_temp>warn_temp) color=WARN_COLOR;
+?>		<li><?=name?> <span style=font-weight:bold;color:<?=color?>><?=current_temp?>°C</span><?=current_temp>crit_temp?WARN_EMOJI:""?> <progress min=<?=min?> max=<?=max?> value=<?=current_temp?>>
+<?
+	}
+?>
+		</ul>
 		<p>HTTP/Web server uptime: <a href="//google.com/search?q=<?=processUptime?>+sec+to+hours" target=_blank style=cursor:pointer;font-weight:bold;color:<?=processUptime<3600?"brown":"green"?>><?=processUptime?>s</a></p>
 		<p>Server System uptime: <b style=color:green><?=execSync("uptime -p").toString().trim().split("\n").join("&#10;")?></b></p>
 		<p>Server Uhrzeit: <b style=color:brown><?=new Date()?></b></p>
 		<p style=display:flex><span style=margin-right:8px title="NVMeSSD&#10;Gerät: '<?=rootFs[0]?>'&#10;Eingebunden unter: '<?=rootFs[5]?>'&#10;Speicher: <?=rootFs[2]?>/<?=rootFs[1]?>&#10;Kapazität: <?=rootFs[1]?>&#10;Belegt: <?=rootFs[2]?>, <?=rootFs[4]?>%&#10;Frei: <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%">NVMeSSD:</span> <b title="Belegter Speicher <?=rootFs[2]?>, <?=rootFs[4]?>%"><?=rootFs[4]?>% (<?=rootFs[2]?>)</b><progress title="Belegter Speicher <?=rootFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=rootFs[4]?>></progress><b title="Freier Speicher <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%"><?=(rootFs[4]-100)*-1?>% (<?=rootFs[3]?>)</b></p>
 		<p style=display:flex><span style=margin-right:8px title="Daten-HDD&#10;Gerät: '<?=dataFs[0]?>'&#10;Eingebunden unter: '<?=dataFs[5]?>'&#10;Speicher: <?=dataFs[2]?>/<?=dataFs[1]?>&#10;Kapazität: <?=dataFs[1]?>&#10;Belegt: <?=dataFs[2]?>, <?=dataFs[4]?>%&#10;Frei: <?=dataFs[3]?>, <?=(dataFs[4]-100)*-1?>%">Daten-HDD:</span> <b title="Belegter Speicher <?=dataFs[2]?>, <?=dataFs[4]?>%"><?=dataFs[4]?>% (<?=dataFs[2]?>)</b><progress title="Belegter Speicher <?=dataFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=dataFs[4]?>></progress><b title="Freier Speicher <?=dataFs[3]?>, <?=(dataFs[4]-100)*-1?>%"><?=(dataFs[4]-100)*-1?>% (<?=dataFs[3]?>)</b></p>
+		<p style=display:flex><span style=margin-right:8px title="Lese-Cache von Daten-HDD, hierzu werden 100GB der NVMeSSD genommen. (bCache)">Zwischenspeicher:</span> <b><?=100-cacheFreePercent?>%</b><progress style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=100-cacheFreePercent?>></progress><b><?=cacheFreePercent?>%</b></p>
 		<?if(backupExternFs){?><p style=display:flex><span style=margin-right:8px title="BackupHDD&#10;Gerät: '<?=backupExternFs[0]?>'&#10;Eingebunden unter: '<?=backupExternFs[5]?>'&#10;Speicher: <?=backupExternFs[2]?>/<?=backupExternFs[1]?>&#10;Kapazität: <?=backupExternFs[1]?>&#10;Belegt: <?=backupExternFs[2]?>, <?=backupExternFs[4]?>%&#10;Frei: <?=backupExternFs[3]?>, <?=(backupExternFs[4]-100)*-1?>%">BackupHDD:</span> <b title="Belegter Speicher <?=backupExternFs[2]?>, <?=backupExternFs[4]?>%"><?=backupExternFs[4]?>% (<?=backupExternFs[2]?>)</b><progress title="Belegter Speicher <?=backupExternFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=backupExternFs[4]?>></progress><b title="Freier Speicher <?=backupExternFs[3]?>, <?=(backupExternFs[4]-100)*-1?>%"><?=(backupExternFs[4]-100)*-1?>% (<?=backupExternFs[3]?>)</b></p><?}?>
 		<p style=display:flex><span style=margin-right:8px title="TempFS&#10;Gerät: '<?=tmpFs[0]?>'&#10;Eingebunden unter: '<?=tmpFs[5]?>'&#10;Speicher: <?=tmpFs[2]?>/<?=tmpFs[1]?>&#10;Kapazität: <?=tmpFs[1]?>&#10;Belegt: <?=tmpFs[2]?>, <?=tmpFs[4]?>%&#10;Frei: <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%">TempFS:</span> <b title="Belegter Speicher <?=tmpFs[2]?>, <?=tmpFs[4]?>%"><?=tmpFs[4]?>% (<?=tmpFs[2]?>)</b><progress title="Belegter Speicher <?=tmpFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=tmpFs[4]?>></progress><b title="Freier Speicher <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%"><?=(tmpFs[4]-100)*-1?>% (<?=tmpFs[3]?>)</b></p>
 		<p>Arbeitsspeicher Auslastung:</p>
