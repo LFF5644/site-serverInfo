@@ -148,7 +148,7 @@
 			<li><span style=background-color:lightgreen;color:black>Memory Buffered</span> (schreib cache): <b><?=Math.round(mem.Buffers/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Buffers/1024*100)/100?>M)</b></li>
 			<li><span style=background-color:yellow;color:black>Memory Cached</span> (lese cache): <b><?=Math.round(mem.Cached/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Cached/1024/1024*100)/100?>G)</b></li>
 			<li><span style=background-color:lightgray;color:black>Memory Free</span> (unbenutzter Speicher): <b><?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/1024/1024*100)/100?>G)</b></li>
-			<li><span style=background-color:orange;color:black>Swap Used</span> (Auslagerungsspeicher Benutzt): <b><?=Math.round((mem.SwapTotal-mem.SwapFree)/mem.SwapTotal*1000)/10?>% (<?=Math.round((mem.SwapCached)/1024/1024*100)/100?>G)</b></li>
+			<li><span style=background-color:orange;color:black>Swap Used</span> (Auslagerungsspeicher Benutzt): <b><?=Math.round((mem.SwapTotal-mem.SwapFree)/mem.SwapTotal*1000)/10?>% (<?=Math.round((mem.SwapTotal-mem.SwapFree)/1024/1024*100)/100?>G)</b></li>
 			<li><span style=background-color:lightgray;color:black>Swap Free</span> (Auslagerungsspeicher verfügbar): <b><?=Math.round(mem.SwapFree/mem.SwapTotal*1000)/10?>% (<?=Math.round((mem.SwapFree)/1024/1024*100)/100?>G)</b></li>
 		</ul>
 
