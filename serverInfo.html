@@ -22,7 +22,7 @@
 	const temps=[
 		// NAME, CURRENT_TEMP, MIN_TEMP, MAX_TEMP, WARN_TEMP, CRIT_TEMP
 		["CPU", Number((await fsp.readFile("/sys/class/thermal/thermal_zone1/temp","utf-8")).trim())/1000, 40, 90, 55, 70], // n95
-		["Gehäuse", Number((await fsp.readFile("/sys/class/thermal/thermal_zone0/temp","utf-8")).trim())/1000, 20, 40, 30, 35], // n95
+		// ["Gehäuse", Number((await fsp.readFile("/sys/class/thermal/thermal_zone0/temp","utf-8")).trim())/1000, 20, 40, 30, 35], // always 27.5 on n95
 		["NVMeSSD", Number((await fsp.readFile("/sys/class/hwmon/hwmon1/temp1_input","utf-8")).trim())/1000, 30, 90, 50, 60], // n95
 	];
 	const WARN_COLOR="orange";
@@ -80,7 +80,7 @@
 		<p>CPU Last in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuLoadAvg.map(item=>`<span style=color:${item>40?(item>80?"red":"orange"):"green"}>${item>100?100:item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p>
 		<?if(cpuOverload.some(item=>item>0)){?><p>CPU Überlast in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuOverload.map(item=>`<span style=color:${item>0?"red":"green"}>${item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p><?}?>
 		<?if(cpuMaxFreq!==cpuCurrentMaxFreq){?><p><b style=color:orange>INFO</b>: <span>CPU Läuft auf <b>REDUZIERTER</b> Leistung, maximal <b><?=cpuCurrentMaxFreq/1000<1?cpuCurrentMaxFreq:cpuCurrentMaxFreq/1000?> <?=cpuCurrentMaxFreq/1000<1?"MHz":"GHz"?></b></span></p><?}?>
-		<p>Aktive CPU Kerne: <b style=color:<?=cpuLogicalCores>1?"green":"red"?>><?=cpuLogicalCores?></b></p>
+		<p><span title="Derzeit eingeschaltete Logische Kerne der Central Processing Unit">Eingeschaltete CPU Threads</span>: <b style=color:<?=cpuLogicalCores>1?"green":"red"?>><?=cpuLogicalCores?></b></p>
 		<p>Aktive Prozesse: <b><?=runningProcesses?></b></p>
 		<p>CPU Zeit <code>(seit systemstart)</code>:</p>
 		<ul>
@@ -131,27 +131,54 @@
 		<p>Arbeitsspeicher Auslastung:</p>
 		<ul>
 			<li style="margin: 10px 0 10px 0">
-				<span style=display:flex>Mem: 
-					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
-						<span title=Used_mem style="width:<?=((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span><span title=Buffered_mem style="width:<?=(mem.Buffers/mem.MemTotal)*100?>%;height:100%;background-color:lightgreen;display:inline-block;"></span><span title=Cached_mem style="width:<?=(mem.Cached/mem.MemTotal)*100?>%;height:100%;background-color:gold;display:inline-block;"></span><span title=Free_mem style="width:<?=(mem.MemFree/mem.MemTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
+				<span style=display:flex;>
+					<span title="Random Access Memory (System-Speicher)">RAM: </span>
+					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;font-size:0;">
+						<!--<span title=Used_mem style="width:<?=((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span>-->
+						<span title="Von Kernel/BIOS/Treiber/Geräte-Controllern (Sound-Karte, Onboard-Grafik, RAID-Controller, ...) genutzt (Slab)" style="width:<?=(mem.Slab/mem.MemTotal)*100?>%;height:100%;background-color:red;display:inline-block;"></span>
+						<span title="Programm-Speicher (AnonPages)" style="width:<?=(mem.AnonPages/mem.MemTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span>
+						<span title="Geteilter Speicher zb. Tempfs, Prozessübergreifende-Daten, ... (Shmem)" style="width:<?=(mem.Shmem/mem.MemTotal)*100?>%;height:100%;background-color:orange;display:inline-block;"></span>
+						<span title="Komprimiert um Speicher zu sparen (Zswap)" style="width:<?=(mem.Zswap/mem.MemTotal)*100?>%;height:100%;background-color:green;display:inline-block;"></span>
+						<span title="Zwischen-gepuffert zb. beim Schreiben auf HDDs oder langsame USB-Geräte besonders hoch (Buffers)" style="width:<?=(mem.Buffers/mem.MemTotal)*100?>%;height:100%;background-color:lightgreen;display:inline-block;"></span>
+						<span title="Zwischengespeichert zb. Gelesene-Dateien (Cached)" style="width:<?=(mem.Cached/mem.MemTotal)*100?>%;height:100%;background-color:gold;display:inline-block;"></span>
+						<span title="Komplett 'untouched'-Speicher, praktisch Verschwendung, reserve fürs schnelle benutzten (Free)" style="width:<?=((mem.MemTotal-mem.Slab-mem.AnonPages-mem.Shmem-mem.Zswap-mem.Buffers-mem.Cached)/mem.MemTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
 					</span>
 				</span>
 			</li>
 			<li style="margin: 10px 0 10px 0">
-				<span style=display:flex>Swap: 
-					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;">
-						<span title=SWAP_used style="width:<?=((mem.SwapTotal-mem.SwapFree)/mem.SwapTotal)*100?>%;height:100%;background-color:orange;display:inline-block;"></span><span title=SWAP_free style="width:<?=(mem.SwapFree/mem.SwapTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
+				<span style=display:flex>
+					<span title="Ausgelagerter Speicher auf HDD/SSD (unter Windows Pagefile)">Swap</span>: 
+					<span style="flex:content;margin: 0 5px 0 5px;height:20px;border:0;background-color:lightgray;font-size:0;">
+						<!--<span title=SWAP_used style="width:<?=((mem.SwapTotal-mem.SwapFree)/mem.SwapTotal)*100?>%;height:100%;background-color:orange;display:inline-block;"></span>-->
+						<span title="SWAP Aktiv im RAM geladen (Dekomprimierte Größe nicht physische Größe im RAM) (Zswapped)" style="width:<?=(mem.Zswapped/mem.SwapTotal)*100?>%;height:100%;background-color:blue;display:inline-block;"></span>
+						<span title="Ausgelagerter-Speicher auf HDD/SSD" style="width:<?=((mem.SwapTotal-mem.SwapFree-mem.Zswapped)/mem.SwapTotal)*100?>%;height:100%;background-color:orange;display:inline-block;"></span>
+						<span title="Freier-Speicher in Swap-(File/Partition)" style="width:<?=(mem.SwapFree/mem.SwapTotal)*100?>%;height:100%;background-color:lightgray;display:inline-block;"></span>
 					</span>
 				</span>
 			</li>
-			<li><span style=background-color:blue;color:white>Memory Used</span> (wird derzeit benutzt): <b><?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/1024/1024*100)/100?>G)</b></li>
-			<li><span style=background-color:lightgreen;color:black>Memory Buffered</span> (schreib cache): <b><?=Math.round(mem.Buffers/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Buffers/1024*100)/100?>M)</b></li>
-			<li><span style=background-color:yellow;color:black>Memory Cached</span> (lese cache): <b><?=Math.round(mem.Cached/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Cached/1024/1024*100)/100?>G)</b></li>
-			<li><span style=background-color:lightgray;color:black>Memory Free</span> (unbenutzter Speicher): <b><?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/1024/1024*100)/100?>G)</b></li>
-			<li><span style=background-color:orange;color:black>Swap Used</span> (Auslagerungsspeicher Benutzt): <b><?=Math.round((mem.SwapTotal-mem.SwapFree)/mem.SwapTotal*1000)/10?>% (<?=Math.round((mem.SwapTotal-mem.SwapFree)/1024/1024*100)/100?>G)</b></li>
-			<li><span style=background-color:lightgray;color:black>Swap Free</span> (Auslagerungsspeicher verfügbar): <b><?=Math.round(mem.SwapFree/mem.SwapTotal*1000)/10?>% (<?=Math.round((mem.SwapFree)/1024/1024*100)/100?>G)</b></li>
+			<li>
+				<span>Arbeitsspeicher (RAM)</span>: 
+				<ul>
+					<!--<li><span style=background-color:blue;color:white>Memory Used</span> (wird derzeit benutzt): <b><?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemTotal-mem.MemFree-mem.Buffers-mem.Cached)/1024/1024*100)/100?>GiB)</b></li>-->
+					<li><span style=background-color:red;color:white title="Slab: von Kernel/BIOS/Treiber/Geräte-Controllern (Sound-Karte, Onboard-Grafik, RAID-Controller, ...) genutzt.">Statisch</span> (Kernel/BIOS/Hardware): <b><?=Math.round(mem.Slab/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Slab/1024/1024*100)/100?>GiB)</b></li>
+					<li><span style=background-color:blue;color:white title="AnonPages: von Programmen genutzt.">Daten</span> (Resources/Daten): <b><?=Math.round(mem.AnonPages/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.AnonPages/1024/1024*100)/100?>GiB)</b></li>
+					<li><span style=background-color:orange;color:black title="Shmem: Geteilter Speicher zb. Tempfs, Prozessübergreifende-Daten, ... ">Geteilt</span> (TempFS/Libraries/Daten): <b><?=Math.round(mem.Shmem/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Shmem/1024/1024*100)/100?>GiB)</b></li>
+					<li><span style=background-color:green;color:white title="Zswap: Komprimiert um Speicher zu sparen und gff. Auszulagern auf SWAP">Komprimiert</span> (zur Auslagerung vorbereitet): <b><?=Math.round(mem.Zswap/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Zswap/1024/1024*100)/100?>GiB)</b></li>
+					<li><span style=background-color:lightgreen;color:black title="Zwischen-gepuffert zb. beim Schreiben auf HDDs oder langsame USB-Geräte besonders hoch">Gepuffert</span> (Schreibcache): <b><?=Math.round(mem.Buffers/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Buffers/1024*100)/100?>MiB)</b></li>
+					<li><span style=background-color:yellow;color:black title="Zwischengespeichert zb. Gelesene-Dateien">Cache</span> (Lesecache/Dateicache): <b><?=Math.round(mem.Cached/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Cached/1024/1024*100)/100?>GiB)</b></li>
+					<li><span style=background-color:lightgray;color:black title="Komplett 'untouched'-Speicher, praktisch Verschwendung, reserve fürs schnelle benutzten">Frei</span> (unbenutzter Speicher): <b><?=Math.round((mem.MemTotal-mem.Slab-mem.AnonPages-mem.Shmem-mem.Zswap-mem.Buffers-mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/1024/1024*100)/100?>GiB)</b></li>
+				</ul>
+			</li>
+			<li>
+				<span>Ausgelagerter Speicher (Swap)</span>: 
+				<ul>
+					<li><span style=background-color:blue;color:white title="Aktiv im RAM geladen (Dekomprimierte Größe nicht physische Größe im RAM)">Geladen</span> (im RAM): <b><?=Math.round(mem.Zswapped/mem.SwapTotal*1000)/10?>% (<?=Math.round(mem.Zswapped/1024/1024*100)/100?>GiB)</b></li>
+					<li><span style=background-color:orange;color:black title="Ausgelagerter-Speicher auf HDD/SSD">Benutzt</span> (im Auslagerungsspeicher): <b><?=Math.round((mem.SwapTotal-mem.SwapFree-mem.Zswapped)/mem.SwapTotal*1000)/10?>% (<?=Math.round((mem.SwapTotal-mem.SwapFree-mem.Zswapped)/1024/1024*100)/100?>GiB)</b></li>
+					<li><span style=background-color:lightgray;color:black title="Freier-Speicher in Swap-(File/Partition)">Frei</span> (verfügbar): <b><?=Math.round(mem.SwapFree/mem.SwapTotal*1000)/10?>% (<?=Math.round(mem.SwapFree/1024/1024*100)/100?>GiB)</b></li>
+				</ul>
+			</li>
+			<li><span title="Zswap Komprimiert Arbeitsspeicher um ihn beispielsweise effizient auf eine HDD zu Swappen">Eingespart durch Zswap</span>: <b style=color:green><!--<?=Math.round((mem.Zswap/mem.Zswapped*1000))/10?>%--><?=Math.round((mem.Zswapped-mem.Zswap)/1024*100)/100?>MiB</b> von <b><?=Math.round(mem.Zswapped/1024/1024*100)/100?>GiB</b>
 		</ul>
-
 		<?if(input.view==="all"){
 			?><p><textarea readonly style=width:100%;height:100px>Arbeitsspeicher (RAM):&#10;<?=execSync("free -h").toString().trim().split("\n").join("&#10;").split("total").join("total\t")?></textarea></p>
 		<p><textarea readonly style=width:100%;height:200px>Processor Informationen:&#10;<?=execSync("lscpu").toString().trim().split("\n").join("&#10;")?></textarea></p>
