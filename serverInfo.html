@@ -75,14 +75,14 @@
 	</head>
 	<body>
 		<h1><a href=//lff.one>LFF.one</a> Server-Info</h1>
-		<p>Server Name: <b style=color:brown><?=os.hostname()?></b></p>
+		<p>Server-Name: <b style=color:brown><?=os.hostname()?></b></p>
 		<p>Platform: <a style=cursor:pointer;color:brown;font-weight:bold; href="//google.com/search?q=was+ist+<?=platform?>" target=_blank><?=platform?></a></p>
-		<p>CPU Last in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuLoadAvg.map(item=>`<span style=color:${item>40?(item>80?"red":"orange"):"green"}>${item>100?100:item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p>
+		<p>CPU-Last in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuLoadAvg.map(item=>`<span style=color:${item>40?(item>80?"red":"orange"):"green"}>${item>100?100:item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p>
 		<?if(cpuOverload.some(item=>item>0)){?><p>CPU Überlast in Prozent <code>(1m, 5m, 15m)</code>: <b><?=cpuOverload.map(item=>`<span style=color:${item>0?"red":"green"}>${item}%</span>`).join("<span style=color:brown>,</span> ")?></b></p><?}?>
 		<?if(cpuMaxFreq!==cpuCurrentMaxFreq){?><p><b style=color:orange>INFO</b>: <span>CPU Läuft auf <b>REDUZIERTER</b> Leistung, maximal <b><?=cpuCurrentMaxFreq/1000<1?cpuCurrentMaxFreq:cpuCurrentMaxFreq/1000?> <?=cpuCurrentMaxFreq/1000<1?"MHz":"GHz"?></b></span></p><?}?>
 		<p><span title="Derzeit eingeschaltete Logische Kerne der Central Processing Unit">Eingeschaltete CPU Threads</span>: <b style=color:<?=cpuLogicalCores>1?"green":"red"?>><?=cpuLogicalCores?></b></p>
-		<p>Aktive Prozesse: <b><?=runningProcesses?></b></p>
-		<p>CPU Zeit <code>(seit systemstart)</code>:</p>
+		<p>Aktive-Prozesse: <b><?=runningProcesses?></b></p>
+		<p>CPU-Zeit <code>(seit systemstart)</code>:</p>
 		<ul>
 			<li style="margin: 10px 0 10px 0">
 				<span style=display:flex>CPU mit Idle: 
@@ -120,15 +120,15 @@
 	}
 ?>
 		</ul>
-		<p>HTTP/Web server uptime: <a href="//google.com/search?q=<?=processUptime?>+sec+to+hours" target=_blank style=cursor:pointer;font-weight:bold;color:<?=processUptime<3600?"brown":"green"?>><?=processUptime?>s</a></p>
-		<p>Server System uptime: <b style=color:green><?=execSync("uptime -p").toString().trim().split("\n").join("&#10;")?></b></p>
-		<p>Server Uhrzeit: <b style=color:brown><?=new Date()?></b></p>
+		<p>HTTP/Web-Server uptime: <a href="//google.com/search?q=<?=processUptime?>+sec+to+hours" target=_blank style=cursor:pointer;font-weight:bold;color:<?=processUptime<3600?"brown":"green"?>><?=processUptime?>s</a></p>
+		<p>Server-System uptime: <b style=color:green><?=execSync("uptime -p").toString().trim().split("\n").join("&#10;")?></b></p>
+		<p>Server-Uhrzeit: <b style=color:brown><?=new Date()?></b></p>
 		<p style=display:flex><span style=margin-right:8px title="NVMeSSD&#10;Gerät: '<?=rootFs[0]?>'&#10;Eingebunden unter: '<?=rootFs[5]?>'&#10;Speicher: <?=rootFs[2]?>/<?=rootFs[1]?>&#10;Kapazität: <?=rootFs[1]?>&#10;Belegt: <?=rootFs[2]?>, <?=rootFs[4]?>%&#10;Frei: <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%">NVMeSSD:</span> <b title="Belegter Speicher <?=rootFs[2]?>, <?=rootFs[4]?>%"><?=rootFs[4]?>% (<?=rootFs[2]?>)</b><progress title="Belegter Speicher <?=rootFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=rootFs[4]?>></progress><b title="Freier Speicher <?=rootFs[3]?>, <?=(rootFs[4]-100)*-1?>%"><?=(rootFs[4]-100)*-1?>% (<?=rootFs[3]?>)</b></p>
 		<p style=display:flex><span style=margin-right:8px title="Daten-HDD&#10;Gerät: '<?=dataFs[0]?>'&#10;Eingebunden unter: '<?=dataFs[5]?>'&#10;Speicher: <?=dataFs[2]?>/<?=dataFs[1]?>&#10;Kapazität: <?=dataFs[1]?>&#10;Belegt: <?=dataFs[2]?>, <?=dataFs[4]?>%&#10;Frei: <?=dataFs[3]?>, <?=(dataFs[4]-100)*-1?>%">Daten-HDD:</span> <b title="Belegter Speicher <?=dataFs[2]?>, <?=dataFs[4]?>%"><?=dataFs[4]?>% (<?=dataFs[2]?>)</b><progress title="Belegter Speicher <?=dataFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=dataFs[4]?>></progress><b title="Freier Speicher <?=dataFs[3]?>, <?=(dataFs[4]-100)*-1?>%"><?=(dataFs[4]-100)*-1?>% (<?=dataFs[3]?>)</b></p>
 		<p style=display:flex><span style=margin-right:8px title="Lese-Cache von Daten-HDD, hierzu werden 100GB der NVMeSSD genommen. (bCache)">Zwischenspeicher:</span> <b><?=100-cacheFreePercent?>%</b><progress style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=100-cacheFreePercent?>></progress><b><?=cacheFreePercent?>%</b></p>
 		<?if(backupExternFs){?><p style=display:flex><span style=margin-right:8px title="BackupHDD&#10;Gerät: '<?=backupExternFs[0]?>'&#10;Eingebunden unter: '<?=backupExternFs[5]?>'&#10;Speicher: <?=backupExternFs[2]?>/<?=backupExternFs[1]?>&#10;Kapazität: <?=backupExternFs[1]?>&#10;Belegt: <?=backupExternFs[2]?>, <?=backupExternFs[4]?>%&#10;Frei: <?=backupExternFs[3]?>, <?=(backupExternFs[4]-100)*-1?>%">BackupHDD:</span> <b title="Belegter Speicher <?=backupExternFs[2]?>, <?=backupExternFs[4]?>%"><?=backupExternFs[4]?>% (<?=backupExternFs[2]?>)</b><progress title="Belegter Speicher <?=backupExternFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=backupExternFs[4]?>></progress><b title="Freier Speicher <?=backupExternFs[3]?>, <?=(backupExternFs[4]-100)*-1?>%"><?=(backupExternFs[4]-100)*-1?>% (<?=backupExternFs[3]?>)</b></p><?}?>
 		<p style=display:flex><span style=margin-right:8px title="TempFS&#10;Gerät: '<?=tmpFs[0]?>'&#10;Eingebunden unter: '<?=tmpFs[5]?>'&#10;Speicher: <?=tmpFs[2]?>/<?=tmpFs[1]?>&#10;Kapazität: <?=tmpFs[1]?>&#10;Belegt: <?=tmpFs[2]?>, <?=tmpFs[4]?>%&#10;Frei: <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%">TempFS:</span> <b title="Belegter Speicher <?=tmpFs[2]?>, <?=tmpFs[4]?>%"><?=tmpFs[4]?>% (<?=tmpFs[2]?>)</b><progress title="Belegter Speicher <?=tmpFs[4]?>%" style="flex: content; margin: 0 5px 0 5px; height: 20px; border:0;" min=0 max=100 value=<?=tmpFs[4]?>></progress><b title="Freier Speicher <?=tmpFs[3]?>, <?=(tmpFs[4]-100)*-1?>%"><?=(tmpFs[4]-100)*-1?>% (<?=tmpFs[3]?>)</b></p>
-		<p>Arbeitsspeicher Auslastung:</p>
+		<p>Arbeitsspeicher-Auslastung:</p>
 		<ul>
 			<li style="margin: 10px 0 10px 0">
 				<span style=display:flex;>
