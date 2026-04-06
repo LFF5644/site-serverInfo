@@ -166,7 +166,7 @@
 					<li><span style=background-color:green;color:white title="Zswap: Komprimiert um Speicher zu sparen und gff. Auszulagern auf SWAP">Komprimiert</span> (zur Auslagerung vorbereitet): <b><?=Math.round(mem.Zswap/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Zswap/1024/1024*100)/100?>GiB)</b></li>
 					<li><span style=background-color:lightgreen;color:black title="Zwischen-gepuffert zb. beim Schreiben auf HDDs oder langsame USB-Geräte besonders hoch">Gepuffert</span> (Schreibcache): <b><?=Math.round(mem.Buffers/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Buffers/1024*100)/100?>MiB)</b></li>
 					<li><span style=background-color:yellow;color:black title="Zwischengespeichert zb. Gelesene-Dateien">Cache</span> (Lesecache/Dateicache): <b><?=Math.round(mem.Cached/mem.MemTotal*1000)/10?>% (<?=Math.round(mem.Cached/1024/1024*100)/100?>GiB)</b></li>
-					<li><span style=background-color:lightgray;color:black title="Komplett 'untouched'-Speicher, praktisch Verschwendung, reserve fürs schnelle benutzten">Frei</span> (unbenutzter Speicher): <b><?=Math.round((mem.MemTotal-mem.Slab-mem.AnonPages-mem.Shmem-mem.Zswap-mem.Buffers-mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemFree+mem.Buffers+mem.Cached)/1024/1024*100)/100?>GiB)</b></li>
+					<li><span style=background-color:lightgray;color:black title="Komplett 'untouched'-Speicher, praktisch Verschwendung, reserve fürs schnelle benutzten">Frei</span> (unbenutzter Speicher): <b><?=Math.round((mem.MemTotal-mem.Slab-mem.AnonPages-mem.Shmem-mem.Zswap-mem.Buffers-mem.Cached)/mem.MemTotal*1000)/10?>% (<?=Math.round((mem.MemTotal-mem.Slab-mem.AnonPages-mem.Shmem-mem.Zswap-mem.Buffers-mem.Cached)/1024/1024*100)/100?>GiB)</b></li>
 				</ul>
 			</li>
 			<li>
